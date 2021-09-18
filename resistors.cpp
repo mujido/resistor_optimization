@@ -1,14 +1,14 @@
-#include <iostream>
-#include <cmath>
-// #include <Eigen/Dense>
-#include <initializer_list>
-#include <valarray>
+#include <boost/format.hpp>
 #include <array>
-#include <random>
 #include <bitset>
 #include <chrono>
-#include <boost/format.hpp>
-#include <conio.h>
+#include <cmath>
+#include <initializer_list>
+#include <iostream>
+#include <random>
+#include <valarray>
+
+#include "signals.h"
 
 using boost::format;
 
@@ -425,7 +425,7 @@ struct Model
                 % bestScore << "\n";
         };
 
-        while (!_kbhit())
+        while (!exitedRequested())
         {
             auto& [newResistors, newScore] = findBiggestChange(targetRatios, currentResistors, currentScore);
 
@@ -611,6 +611,8 @@ int main(int argc, const char* argv[])
         std::cerr << "resistor count out of range" << std::endl;
         return 1;
     }
+
+    setupSignalHandler();
 
     runArbitrary(static_cast<unsigned>(rCount));
     return 0;
