@@ -463,7 +463,7 @@ struct Model
                     bestScore = currentScore;
                 }
 
-                printProgress();
+                // printProgress();
                 currentResistors = bestResistors;
 
                 auto randCount = resistorIndexDist_(rnd_);
