@@ -100,7 +100,7 @@ unsigned log2(unsigned value)
         return lookupTable[value];
 }
 
-template<unsigned N>
+template<std::size_t N>
 constexpr std::array<double, N> reciprocate(const std::array<double, N>& src)
 {
     std::array<double, N> result{};
@@ -109,6 +109,22 @@ constexpr std::array<double, N> reciprocate(const std::array<double, N>& src)
         result[i] = 1.0 / src[i];
 
     return result;
+}
+
+template<typename T, std::size_t N>
+std::ostream& operator<< (std::ostream& os, const std::array<T, N>& arr)
+{
+    auto fmt = boost::format("% 8.4f");
+
+    os << '[';
+
+    if (arr.size() > 0)
+    {
+        for (std::size_t i = 0; i < arr.size() - 1; ++i)
+            os << fmt % arr[i] << ", ";
+    }
+
+    return os << fmt % arr.back() << ']';
 }
 
 // const auto resistorDomain = createFullRange(e12Bases);
@@ -138,6 +154,11 @@ private:
     std::size_t index_;
     double value_;
 };
+
+std::ostream& operator<< (std::ostream& os, const Resistor& r)
+{
+    return os << r.getValue();
+}
 
 template<typename T, std::size_t N>
 std::size_t closest(const std::array<T, N>& arr, const T& val)
@@ -427,7 +448,7 @@ struct Model
 
         while (!exitedRequested())
         {
-            auto& [newResistors, newScore] = findBiggestChange(targetRatios, currentResistors, currentScore);
+            auto [newResistors, newScore] = findBiggestChange(targetRatios, currentResistors, currentScore);
 
             if (newScore < currentScore)
             {
@@ -542,27 +563,6 @@ std::array<T, N> operator- (const std::array<T, N>& lhs, const std::array<T, N>&
 
 //     return minIndex;
 // }
-
-std::ostream& operator<< (std::ostream& os, const Resistor& r)
-{
-    return os << r.getValue();
-}
-
-template<typename T, std::size_t N>
-std::ostream& operator<< (std::ostream& os, const std::array<T, N>& arr)
-{
-    auto fmt = boost::format("% 8.4f") ;
-
-    os << '[';
-
-    if (arr.size() > 0)
-    {
-        for (std::size_t i = 0; i < arr.size() - 1; ++i)
-            os << fmt % arr[i] << ", ";
-    }
-
-    return os << fmt % arr.back() << ']';
-}
 
 template<unsigned thisCount>
 void runArbitraryAt(unsigned rCount)
