@@ -5,7 +5,12 @@ project(resistors)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-add_executable(resistors main.cpp signals.cpp)
+add_executable(resistors 
+    main.cpp 
+    math_utils.h
+    math_utils.cpp
+    signals.h
+    signals.cpp)
 
 if(MSVC)
    target_include_directories(resistors PUBLIC 
