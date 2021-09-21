@@ -12,22 +12,6 @@
 
 using boost::format;
 
-// static constexpr std::array<double, 13> targetPotentials{
-//     0.0722,
-//     0.2126,
-//     0.2848,
-//     0.7874,
-//     0.9278,
-//     1,
-//     1.0722,
-//     1.2126,
-//     1.2848,
-//     1.7152,
-//     1.7874,
-//     1.9278,
-//     2
-// };
-
 static constexpr std::array<double, 13> targetPotentials{
     2.0722,
     2.2126,
