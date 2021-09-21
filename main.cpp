@@ -9,11 +9,13 @@
 #include <valarray>
 
 #include "math_utils.h"
+#include "resistor_series.h"
+#include "resistor.h"
 #include "signals.h"
 
 using boost::format;
 
-static constexpr std::array<double, 13> targetPotentials{
+constexpr std::array<double, 13> targetPotentials{
     2.0722,
     2.2126,
     2.2848,
@@ -29,47 +31,7 @@ static constexpr std::array<double, 13> targetPotentials{
     4,
 };
 
-static constexpr std::array<double, 12> e12Bases = { 1.0, 1.2, 1.5, 1.8, 2.2, 2.7, 3.3, 3.9, 4.7, 5.6, 6.8, 8.2 };
-static constexpr std::array<double, 48> e48Bases = {
-    1.00, 1.05, 1.10, 1.15, 1.21, 1.27, 1.33, 1.40,
-    1.47, 1.54, 1.62, 1.69, 1.78, 1.87, 1.96, 2.05, 
-    2.15, 2.26, 2.37, 2.49, 2.61, 2.74, 2.87, 3.01, 
-    3.16, 3.32, 3.48, 3.65, 3.83, 4.02, 4.22, 4.42, 
-    4.64, 4.87, 5.11, 5.36, 5.62, 5.90, 6.19, 6.49,
-    6.81, 7.15, 7.50, 7.87, 8.25, 8.66, 9.09, 9.53
-};
-
 using Ratios = std::array<double, targetPotentials.size()>;
-
-template<std::size_t N>
-constexpr std::array<double, N*6> createFullRange(const std::array<double, N>& bases)
-{
-    double mult = 1.0;
-
-    std::array<double, N*6> result{};
-
-    for (std::size_t i = 0; i < 6; ++i)
-    {
-        for (std::size_t j = 0; j < N; ++j)
-            result[N*i + j] = bases[j] * mult;
-
-        mult *= 10.0;
-    }
-
-    return result;
-}
-
-
-template<std::size_t N>
-constexpr std::array<double, N> reciprocate(const std::array<double, N>& src)
-{
-    std::array<double, N> result{};
-
-    for (std::size_t i = 0; i < N; ++i)
-        result[i] = 1.0 / src[i];
-
-    return result;
-}
 
 template<typename T, std::size_t N>
 std::ostream& operator<< (std::ostream& os, const std::array<T, N>& arr)
@@ -87,65 +49,13 @@ std::ostream& operator<< (std::ostream& os, const std::array<T, N>& arr)
     return os << fmt % arr.back() << ']';
 }
 
-// const auto resistorDomain = createFullRange(e12Bases);
-constexpr auto& resistorDomainBases = e12Bases;
-constexpr auto resistorDomain = createFullRange(resistorDomainBases);
-constexpr auto resistorReciprocals = reciprocate(resistorDomain);
 
-class Resistor
-{
-public:
-    constexpr Resistor() : index_(std::numeric_limits<std::size_t>::max()), value_(std::numeric_limits<double>::quiet_NaN())
-    {}
-
-    Resistor(std::size_t index) : index_(index), value_(resistorDomain[index_])
-    {}
-
-    std::size_t getIndex() const { return index_; }
-
-    double getValue() const { return value_; }
-
-    double getReciprocal() const
-    {
-        return resistorReciprocals[getIndex()];
-    }
-
-private:
-    std::size_t index_;
-    double value_;
-};
-
-std::ostream& operator<< (std::ostream& os, const Resistor& r)
-{
-    return os << r.getValue();
-}
-
-template<typename T, std::size_t N>
-std::size_t closest(const std::array<T, N>& arr, const T& val)
-{
-    static_assert(N > 0);
-
-    T minDiff = std::abs(arr[0] - val);
-    std::size_t minIndex = 0;
-
-    for (std::size_t i = 1; i < arr.size(); ++i)
-    {
-        double diff = std::abs(arr[i] - val);
-        if (diff < minDiff)
-        {
-            minDiff = diff;
-            minIndex = i;
-        }
-    }
-
-    return minIndex;
-}
-
-template<unsigned resistorCount, unsigned bestMatchSearchDistance>
+template<unsigned resistorCount, unsigned bestMatchSearchDistance, typename ResistorSeriesType>
 struct Model 
 {
     using RandomGen = std::mt19937;
 
+    const ResistorSeriesType& resistorSeries_;
     RandomGen& rnd_;
     std::uniform_int_distribution<std::size_t> resistorCountDist_;
     std::uniform_int_distribution<std::size_t> resistorIndexDist_;
@@ -178,11 +88,12 @@ struct Model
     using ResistorArray = std::array<Resistor, resistorCount>;
     using AssignedRatios = std::array<AssignedRatio, std::tuple_size<Ratios>::value>;
 
-    Model(RandomGen& rnd) :
+    Model(const ResistorSeriesType& resistorSeries, RandomGen& rnd) :
+        resistorSeries_(resistorSeries),
         rnd_(rnd),
         resistorCountDist_(resistorCount - 2, resistorCount),
         resistorIndexDist_(0, resistorCount - 1),
-        resistorDomainIndexDist_(0, resistorDomain.size() - 1)
+        resistorDomainIndexDist_(0, resistorSeries.fullRange_.size() - 1)
     {}
 
     static AssignedRatios getBestRatios(const Ratios& desiredRatios, const ResistorArray& resistors)
@@ -298,7 +209,7 @@ struct Model
         return 100.0 * error;
     }
 
-    static std::tuple<ResistorArray, double> findBiggestChange(const Ratios& desiredRatios, const ResistorArray& resistors, double currentScore)
+    std::tuple<ResistorArray, double> findBiggestChange(const Ratios& desiredRatios, const ResistorArray& resistors, double currentScore)
     {
         int bestIndex = -1;
         Resistor bestResistor;
@@ -314,10 +225,10 @@ struct Model
                 for (int idxOffset = offsetLow; idxOffset <= offsetHigh; ++idxOffset)
                 {
                     int newIdx = static_cast<int>(r.getIndex()) + idxOffset;
-                    if (newIdx < 0 || static_cast<unsigned>(newIdx) >= resistorDomain.size())
+                    if (newIdx < 0 || static_cast<unsigned>(newIdx) >= resistorSeries_.fullRange_.size())
                         continue;
 
-                    Resistor newR(newIdx);
+                    auto newR = resistor(newIdx);
                     rcopy[i] = newR;
 
                     double newScore = checkAccuracy(desiredRatios, rcopy);
@@ -344,22 +255,27 @@ struct Model
             return {resistors, bestScore};
     }
 
+    Resistor resistor(std::size_t index)
+    {
+        return resistorSeries_.fullRange_[index];
+    }
+
     ResistorArray getRandomResistors()
     {
         ResistorArray resistors{};
 
         for (auto& r : resistors)
-            r = Resistor(resistorDomainIndexDist_(rnd_));
+            r = resistor(resistorDomainIndexDist_(rnd_));
 
         return resistors;
     }
 
-    static ResistorArray valuesToResistors(const std::array<double, resistorCount>& resistorValues)
+    ResistorArray valuesToResistors(const std::array<double, resistorCount>& resistorValues)
     {
         ResistorArray resistors{};
 
         for (std::size_t i = 0; i < resistorCount; ++i)
-            resistors[i] = Resistor(closest(resistorDomain, resistorValues[i]));
+            resistors[i] = resistorSeries_.getClosest(resistorValues[i]);
 
         return resistors;
     }
@@ -433,7 +349,7 @@ struct Model
                     auto idx = resistorIndexDist_(rnd_);
                     if (!switched.test(idx))
                     {
-                        currentResistors[idx] = Resistor(resistorDomainIndexDist_(rnd_));
+                        currentResistors[idx] = resistor(resistorDomainIndexDist_(rnd_));
                         switched.set(idx);
                         --randCount;
                     }
@@ -536,7 +452,10 @@ void runArbitraryAt(unsigned rCount)
         std::seed_seq seed{r(), r(), r(), r(), r(), r()};
         std::mt19937 rnd(seed);
 
-        Model<thisCount, resistorDomainBases.size()> model(rnd);
+        const auto& resistorSeries = e12Series;
+        using SeriesType = std::remove_reference_t<decltype(resistorSeries)>;
+        constexpr auto resistorBaseSize = std::tuple_size<SeriesType::Base>::value;
+        Model<thisCount, resistorBaseSize, SeriesType> model(resistorSeries, rnd);
         // auto startingResistors = model.valuesToResistors({ 2700, 1200, 3900, 680, 68, 220, 270 });
         auto startingResistors = model.getRandomResistors();
 

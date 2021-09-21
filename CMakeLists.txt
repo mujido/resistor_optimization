@@ -9,6 +9,9 @@ add_executable(resistors
     main.cpp 
     math_utils.h
     math_utils.cpp
+    resistor.h
+    resistor_series.h
+    resistor_series.cpp
     signals.h
     signals.cpp)
 
