@@ -11,6 +11,8 @@ public:
     using Base = std::array<double, decadeSize>;
     using FullRange = std::array<Resistor, decadeSize * decadeCount>;
 
+    static constexpr std::size_t decadeSize_ = decadeSize;
+
     Base base_;
     FullRange fullRange_;
     FullRange reciprocals_;

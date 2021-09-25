@@ -25,3 +25,14 @@ std::size_t closest(Container&& cont, const T& val, Projection&& proj)
 
     return minIndex;
 }
+
+template<typename T, std::size_t N>
+std::array<T, N> operator- (const std::array<T, N>& lhs, const std::array<T, N>& rhs)
+{
+    auto result = lhs;
+    for (unsigned i = 0; i < lhs.size(); ++i)
+        result[i] -= rhs[i];
+
+    return result;
+}
+
