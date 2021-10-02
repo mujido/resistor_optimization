@@ -10,7 +10,6 @@ add_executable(resistors
     math_utils.h
     math_utils.cpp
     model.h
-    model.cpp
     resistor.h
     resistor_series.h
     resistor_series.cpp
