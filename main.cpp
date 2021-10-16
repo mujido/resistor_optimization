@@ -1,4 +1,4 @@
-#include <boost/format.hpp>
+#include <fmt/format.h>
 #include <array>
 #include <bitset>
 #include <chrono>
@@ -13,8 +13,6 @@
 #include "resistor_series.h"
 #include "resistor.h"
 #include "signals.h"
-
-using boost::format;
 
 constexpr std::array<double, 13> targetPotentials{
     2.0722,
@@ -32,21 +30,9 @@ constexpr std::array<double, 13> targetPotentials{
     4,
 };
 
-template<typename T, std::size_t N>
-std::ostream& operator<< (std::ostream& os, const std::array<T, N>& arr)
-{
-    auto fmt = boost::format("% 8.4f");
 
-    os << '[';
 
-    if (arr.size() > 0)
-    {
-        for (std::size_t i = 0; i < arr.size() - 1; ++i)
-            os << fmt % arr[i] << ", ";
-    }
 
-    return os << fmt % arr.back() << ']';
-}
 
 template<unsigned thisCount>
 void runArbitraryAt(unsigned rCount)

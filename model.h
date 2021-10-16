@@ -1,5 +1,6 @@
 #pragma once
 
+#include "formatters.h"
 #include "resistor.h"
 #include "resistor_series.h"
 #include <bitset>
@@ -252,10 +253,10 @@ struct Model
 
         for (unsigned i = 0; i < targetRatios_.size(); ++i)
         {
-            std::cout << boost::format("% 12.7f  % 12.7f  % 12.7f  ") 
-                % bestRatios[i].calculatedRatio_ 
-                % (5.0 / (1.0 + bestRatios[i].calculatedRatio_))
-                % (targetRatios_[i] - bestRatios[i].calculatedRatio_);
+            std::cout << FORMAT("{: 12.7f}  {: 12.7f}  {: 12.7f}  ",
+                bestRatios[i].calculatedRatio_,
+                5.0 / (1.0 + bestRatios[i].calculatedRatio_),
+                targetRatios_[i] - bestRatios[i].calculatedRatio_);
             for (int r = 0; r < networkResistorCount; ++r)
                 std::cout << ' ' << (bestRatios[i].resistorStates_.test(r) ? 1 : 0);
 
@@ -278,11 +279,12 @@ struct Model
 
         auto printProgress = [&]()
         {
-            std::cout << format("[%s] Score: %8.4f (%+8.4f) best: %8.4f") 
-                % randomizations
-                % currentScore
-                % (currentScore - bestScore)
-                % bestScore << "\n";
+            std::cout << FORMAT("[{}] Score: {:8.4f} ({:+8.4f}) best: {:8.4f}",
+                randomizations,
+                currentScore,
+                currentScore - bestScore,
+                bestScore);
+            std::cout << "\n";
         };
 
         while (!exitedRequested())
@@ -365,7 +367,10 @@ struct Model
         std::cout << "Targets: " << targetRatios_ << std::endl;
         std::cout << "Best:    " << bestRatioValues << std::endl;
         std::cout << "% diff:  " << percentDiffs << std::endl;
-        std::cout << (format("Score: %10.4f (%10.4f)  stddev: %.3g") % bestScore % (bestScore - startingScore) % pdStdDev) << std::endl;
+        std::cout << FORMAT("Score: {:10.4f} ({:10.4f})  stddev: {:.3g}\n",
+            bestScore,
+            bestScore - startingScore,
+            pdStdDev);
         std::cout << bestResistors << std::endl;
 
         printTable(bestRatios, bestResistors);
