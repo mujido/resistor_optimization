@@ -3,7 +3,9 @@
 #include "formatters.h"
 #include "resistor.h"
 #include "resistor_series.h"
+#include "signals.h"
 #include <bitset>
+#include <functional>
 #include <random>
 
 template<std::size_t N>
@@ -14,12 +16,18 @@ using Ratios = std::array<double, N>;
 
 using RandomGen = std::mt19937;
 
+struct IModel
+{
+    virtual ~IModel() = default;
+    virtual void run(const std::vector<Resistor>& startingResistors) = 0;
+};
+
 template<
     unsigned networkResistorCount,
     unsigned bestMatchSearchDistance,
     std::size_t targetCount,
     typename ResistorSeriesType>
-struct Model 
+struct Model : IModel
 {
     struct AssignedRatio
     {
@@ -224,16 +232,6 @@ struct Model
         return resistorSeries_.fullRange_[index];
     }
 
-    ResistorArray getRandomResistors()
-    {
-        ResistorArray resistors{};
-
-        for (auto& r : resistors)
-            r = resistor(resistorDomainIndexDist_(rnd_));
-
-        return resistors;
-    }
-
     ResistorArray valuesToResistors(const std::array<double, networkResistorCount>& resistorValues)
     {
         ResistorArray resistors{};
@@ -264,8 +262,14 @@ struct Model
         }
     }
 
-    void run(const ResistorArray& startingResistors)
+    virtual void run(const std::vector<Resistor>& startingResistorsVect) final
     {
+        if (startingResistorsVect.size() != networkResistorCount)
+            throw std::logic_error("Starting resistors size doesn't match model parameters");
+
+        ResistorArray startingResistors;
+        std::copy(startingResistorsVect.begin(), startingResistorsVect.end(), startingResistors.begin());
+
         double startingScore = checkAccuracy(startingResistors); 
 
         auto bestResistors = startingResistors;
@@ -392,12 +396,12 @@ template<
     unsigned searchDistance,
     std::size_t targetCount, 
     typename ResistorSeriesType>
-auto makeModel(
+std::unique_ptr<IModel> makeModel(
     const Potentials<targetCount>& targetPotentials,
     const ResistorSeriesType& resistorSeries,
     RandomGen& gen)
 {
-    return Model<networkResistorCount, searchDistance, targetCount, ResistorSeriesType>(targetPotentials, resistorSeries, gen);
+    return std::make_unique<Model<networkResistorCount, searchDistance, targetCount, ResistorSeriesType>>(targetPotentials, resistorSeries, gen);
 }
 
 
