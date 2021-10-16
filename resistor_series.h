@@ -24,7 +24,7 @@ public:
 
     }
 
-    const Resistor& getClosest(double value)
+    const Resistor& getClosest(double value) const
     {
         return closest(fullRange_, value, [](const Resistor& r) { return r.getValue(); });
     }
@@ -54,7 +54,7 @@ private:
 	{
 		FullRange result{};
 
-		for (std::size_t i = 0; i < N; ++i)
+		for (std::size_t i = 0; i < src.size(); ++i)
 			result[i] = 1.0 / src[i];
 
 		return result;
