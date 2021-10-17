@@ -112,7 +112,7 @@ struct Model : IModel
     {
         static_assert(networkResistorCount < std::numeric_limits<unsigned>::digits);
 
-        const unsigned comboCount = 1 << resistors.size();
+        constexpr unsigned resistorBitMask = (1 << networkResistorCount) - 1;
 
         AssignedRatios assigned{};
         unsigned prevBits = 0;
@@ -131,7 +131,7 @@ struct Model : IModel
             double ratio = 0.0;
             if (bits == 0)
                 ratio = 0.0;
-            else if (~bits == 0)
+            else if ((bits & resistorBitMask) == resistorBitMask)
                 ratio = 1.0;
             else
             {
