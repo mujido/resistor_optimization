@@ -130,11 +130,15 @@ struct Model : IModel
             unsigned bits = comboIndex ^ (comboIndex >> 1);
 
             double ratio = 0.0;
-            if (bits == 0)
+            if (bits == 0) [[unlikely]]
+            {
                 ratio = 0.0;
-            else if ((bits & resistorBitMask) == resistorBitMask)
+            }
+            else if ((bits & resistorBitMask) == resistorBitMask) [[unlikely]]
+            {
                 ratio = 1.0;
-            else
+            }
+            else [[likely]]
             {
                 unsigned changedBit = prevBits ^ bits;
                 unsigned resistorPos = log2(changedBit);
