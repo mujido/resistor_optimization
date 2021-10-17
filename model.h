@@ -68,46 +68,6 @@ struct Model : IModel
         return targetRatios;
     }
 
-    AssignedRatios getBestRatios(const ResistorArray& resistors)
-    {
-        const unsigned allOn = (1 << resistors.size()) - 1;
-
-        AssignedRatios assigned{};
-
-        for (unsigned i = 0; i <= allOn; ++i)
-        {
-            double ratio = 0.0;
-            if (i == 0)
-                ratio = 0.0;
-            else if (i == allOn)
-                ratio = 1.0;
-            else
-            {
-                double top = 0.0;
-                double bottom = 0.0;
-
-                for (unsigned j = 0; j < resistors.size(); ++j)
-                {
-                    if ((i & (1 << j)) != 0)
-                        top += resistors[j].getReciprocal();
-                    else
-                        bottom += resistors[j].getReciprocal();
-                }
-
-                ratio = top / bottom;
-            }
-
-            for (unsigned j = 0; j < targetRatios_.size(); ++j)
-                if (std::abs(targetRatios_[j] - ratio) < std::abs(targetRatios_[j] - assigned[j].calculatedRatio_))
-                {
-                    assigned[j].calculatedRatio_ = ratio;
-                    assigned[j].resistorStates_ = std::bitset<networkResistorCount>(i);
-                }
-        }
-
-        return assigned;
-    }
-
     static AssignedRatios getBestRatiosGrey(const TargetRatios& desiredRatios, const ResistorArray& resistors)
     {
         static_assert(networkResistorCount < std::numeric_limits<unsigned>::digits);
@@ -346,7 +306,7 @@ struct Model : IModel
             return lhs.getValue() > rhs.getValue();
         });
 
-        auto bestRatios = getBestRatios(bestResistors);
+        auto bestRatios = getBestRatiosGrey(targetRatios_, bestResistors);
         bestScore = checkAccuracy(bestResistors);
 
         auto percentDiffs = targetRatios_;
