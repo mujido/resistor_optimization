@@ -141,7 +141,7 @@ struct Model : IModel
             else [[likely]]
             {
                 unsigned changedBit = prevBits ^ bits;
-                unsigned resistorPos = log2(changedBit);
+                unsigned resistorPos = __builtin_ctz(changedBit);
                 double v = resistors[resistorPos].getReciprocal();
 
                 // std::cout << boost::format("%8x %8x %d") % prevBits % bits % resistorPos << std::endl;

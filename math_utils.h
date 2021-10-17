@@ -3,8 +3,6 @@
 #include <array>
 #include <cmath>
 
-unsigned log2(unsigned value);
-
 template<typename Container, typename T, std::size_t N, typename Projection>
 std::size_t closest(Container&& cont, const T& val, Projection&& proj)
 {

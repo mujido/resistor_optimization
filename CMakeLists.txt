@@ -16,7 +16,6 @@ add_executable(resistors
     formatters.h
     main.cpp 
     math_utils.h
-    math_utils.cpp
     model.h
     resistor.h
     resistor_series.h
