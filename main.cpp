@@ -31,7 +31,7 @@ constexpr std::array<double, 13> targetPotentials{
     4,
 };
 
-constexpr unsigned MAX_RESISTOR_COUNT = 20;
+constexpr unsigned MAX_RESISTOR_COUNT = 10;
 
 template<typename Series>
 std::vector<Resistor> getRandomResistors(Series& series, unsigned count, RandomGen& rnd)
