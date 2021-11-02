@@ -135,10 +135,8 @@ struct Model : IModel
         return assigned;
     }
 
-    double checkAccuracy(const ResistorArray& resistors)
+    double checkAccuracy(const AssignedRatios& ratios)
     {
-        auto ratios = getBestRatiosGrey(targetRatios_, resistors);
-
         double error = 0.0;
         for (unsigned i = 0; i < ratios.size(); ++i)
             error += std::abs((targetRatios_[i] - ratios[i].calculatedRatio_) / targetRatios_[i]);
@@ -168,7 +166,8 @@ struct Model : IModel
                     auto newR = resistor(newIdx);
                     rcopy[i] = newR;
 
-                    double newScore = checkAccuracy(rcopy);
+                    auto ratios = getBestRatiosGrey(targetRatios_, rcopy);
+                    double newScore = checkAccuracy(ratios);
                     if (newScore < bestScore)
                     {
                         bestIndex = i;
@@ -227,6 +226,49 @@ struct Model : IModel
         }
     }
 
+    void printResults(const ResistorArray& bestResistors, double startingScore, bool doPrintTable)
+    {
+        auto bestRatios = getBestRatiosGrey(targetRatios_, bestResistors);
+        auto bestScore = checkAccuracy(bestRatios);
+
+        auto percentDiffs = targetRatios_;
+        auto pdMean = 0.0;
+        for (unsigned i = 0; i < percentDiffs.size(); ++i)
+        {
+            percentDiffs[i] -= bestRatios[i].calculatedRatio_;
+            percentDiffs[i] = 100.0 * std::abs(percentDiffs[i]) / targetRatios_[i];
+            pdMean += percentDiffs[i];
+        }
+
+        pdMean /= percentDiffs.size();
+
+        double pdStdDev = 0.0;
+        for (auto pd : percentDiffs)
+        {
+            double x = pd - pdMean;
+            pdStdDev += x * x;
+        }
+
+        pdStdDev = std::sqrt(pdStdDev / percentDiffs.size());
+
+        TargetRatios bestRatioValues;
+        for (unsigned i = 0; i < bestRatioValues.size(); ++i)
+            bestRatioValues[i] = bestRatios[i].calculatedRatio_;
+
+        std::cout << std::endl;
+        std::cout << "Targets: " << targetRatios_ << std::endl;
+        std::cout << "Best:    " << bestRatioValues << std::endl;
+        std::cout << "% diff:  " << percentDiffs << std::endl;
+        std::cout << FORMAT("Score: {:10.4f} ({:10.4f})  stddev: {:.3g}\n",
+            bestScore,
+            bestScore - startingScore,
+            pdStdDev);
+        std::cout << bestResistors << std::endl;
+
+        if (doPrintTable)
+            printTable(bestRatios, bestResistors);
+    }
+
     virtual void run(const std::vector<Resistor>& startingResistorsVect) final
     {
         if (startingResistorsVect.size() != networkResistorCount)
@@ -235,7 +277,8 @@ struct Model : IModel
         ResistorArray startingResistors;
         std::copy(startingResistorsVect.begin(), startingResistorsVect.end(), startingResistors.begin());
 
-        double startingScore = checkAccuracy(startingResistors); 
+        auto ratios = getBestRatiosGrey(targetRatios_, startingResistors);
+        double startingScore = checkAccuracy(ratios); 
 
         auto bestResistors = startingResistors;
         auto bestScore = startingScore;
@@ -306,43 +349,7 @@ struct Model : IModel
             return lhs.getValue() > rhs.getValue();
         });
 
-        auto bestRatios = getBestRatiosGrey(targetRatios_, bestResistors);
-        bestScore = checkAccuracy(bestResistors);
-
-        auto percentDiffs = targetRatios_;
-        auto pdMean = 0.0;
-        for (unsigned i = 0; i < percentDiffs.size(); ++i)
-        {
-            percentDiffs[i] -= bestRatios[i].calculatedRatio_;
-            percentDiffs[i] = 100.0 * std::abs(percentDiffs[i]) / targetRatios_[i];
-            pdMean += percentDiffs[i];
-        }
-
-        pdMean /= percentDiffs.size();
-
-        double pdStdDev = 0.0;
-        for (auto pd : percentDiffs)
-        {
-            double x = pd - pdMean;
-            pdStdDev += x * x;
-        }
-
-        pdStdDev = std::sqrt(pdStdDev / percentDiffs.size());
-
-        TargetRatios bestRatioValues;
-        for (unsigned i = 0; i < bestRatioValues.size(); ++i)
-            bestRatioValues[i] = bestRatios[i].calculatedRatio_;
-
-        std::cout << "Targets: " << targetRatios_ << std::endl;
-        std::cout << "Best:    " << bestRatioValues << std::endl;
-        std::cout << "% diff:  " << percentDiffs << std::endl;
-        std::cout << FORMAT("Score: {:10.4f} ({:10.4f})  stddev: {:.3g}\n",
-            bestScore,
-            bestScore - startingScore,
-            pdStdDev);
-        std::cout << bestResistors << std::endl;
-
-        printTable(bestRatios, bestResistors);
+        printResults(bestResistors, startingScore, true);
     }
 };
 
